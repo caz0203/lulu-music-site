@@ -64,7 +64,6 @@ function modal(title, fields, onSubmit) {
   $('#modalClose').onclick = close;
   $('#modalOk').onclick = async () => {
     const data = {};
-    new FormData(body.querySelector('form') || body).forEach?.(() => {});
     body.querySelectorAll('[name]').forEach((el) => (data[el.name] = el.value));
     try {
       await onSubmit(data);
@@ -130,22 +129,35 @@ const views = {
 
   async devices() {
     const { devices } = await api('/api/devices');
-    const rows = devices.length
-      ? devices.map((d) => `<tr>
-          <td><code>${esc(d.deviceId).slice(0, 12)}…</code></td>
-          <td>${esc(d.userId || '—')}</td>
-          <td>${esc(d.role || 'user')}</td>
-          <td class="muted">${esc([d.model, d.os].filter(Boolean).join(' / ') || '—')}</td>
-          <td class="muted">${esc(d.appVersion || '—')}</td>
-          <td class="muted">${fmtTime(d.lastHeartbeat)}</td>
-          <td>${esc(d.note || '—')}</td>
-          <td class="actions"><button class="btn sm" data-dev="${esc(d.deviceId)}">备注</button></td>
-        </tr>`).join('')
-      : `<tr><td colspan="8" class="empty">暂无设备</td></tr>`;
+    const groups = [
+      { key: 'all', label: '全部' },
+      { key: 'user', label: '普通用户' },
+      { key: 'sponsor', label: '赞助用户' },
+      { key: 'dev', label: '开发者' },
+    ];
+    const counts = Object.fromEntries(groups.map((g) => [g.key,
+      g.key === 'all' ? devices.length : devices.filter((d) => (d.role || 'user') === g.key).length]));
+    const active = state.deviceGroup || 'all';
+
+    const rows = devices
+      .filter((d) => active === 'all' || (d.role || 'user') === active)
+      .map((d) => `<tr>
+          <td data-label="设备"><code>${esc(d.deviceId).slice(0, 12)}…</code></td>
+          <td data-label="用户">${esc(d.userId || '—')}</td>
+          <td data-label="分类"><span class="badge ${d.role === 'dev' ? 'warn' : d.role === 'sponsor' ? 'ok' : 'off'}">${esc(d.role || 'user')}</span></td>
+          <td data-label="机型" class="muted">${esc([d.model, d.os].filter(Boolean).join(' / ') || '—')}</td>
+          <td data-label="版本" class="muted">${esc(d.appVersion || '—')}</td>
+          <td data-label="最近登录" class="muted">${fmtTime(d.lastHeartbeat)}</td>
+          <td data-label="备注">${esc(d.note || '—')}</td>
+          <td class="actions"><button class="btn sm" data-dev="${esc(d.deviceId)}" data-role="${esc(d.role || 'user')}" data-note="${esc(d.note || '')}">编辑</button></td>
+        </tr>`).join('');
+
     return `<div class="card">
-      <div class="card-head"><h2>设备（最近 ${devices.length} 台）</h2></div>
-      <table><thead><tr><th>设备</th><th>用户</th><th>角色</th><th>机型</th><th>版本</th><th>心跳</th><th>备注</th><th></th></tr></thead>
-      <tbody>${rows}</tbody></table></div>`;
+      <div class="card-head"><h2>设备（${counts.all} 台）</h2>
+        <div class="tabs">${groups.map((g) => `<button class="tab ${active === g.key ? 'on' : ''}" data-group="${g.key}">${g.label} ${counts[g.key]}</button>`).join('')}</div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>设备</th><th>用户</th><th>分类</th><th>机型</th><th>版本</th><th>最近登录</th><th>备注</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="8" class="empty">该分类下暂无设备</td></tr>`}</tbody></table></div></div>`;
   },
 
   async feedback() {
@@ -214,6 +226,72 @@ const views = {
 };
 
 /* ---------------- 交互绑定 ---------------- */
+
+/** 公告里可选的「App 直达链接」：选中后自动联动按钮文案。 */
+const ANNOUNCEMENT_LINKS = [
+  { value: '', label: '不添加按钮', text: '' },
+  { value: 'https://api.xiaoshuai520.asia/latest', label: '下载最新版本', text: '立即更新' },
+  { value: 'https://api.xiaoshuai520.asia/latest-beta', label: '下载测试版', text: '体验测试版' },
+  { value: 'https://caz0203.github.io/lulu-music-site/sources.json', label: '内置音源清单', text: '查看音源' },
+  { value: 'https://github.com/caz0203/lulu-music-site/releases', label: '全部历史版本', text: '查看历史版本' },
+  { value: '__custom__', label: '自定义链接…', text: '' },
+];
+
+function openAnnouncementModal(a = null) {
+  const isEdit = !!a;
+  const html = `
+    <label>标题<input id="aTitle" value="${esc(a?.title || '')}" /></label>
+    <label>内容<textarea id="aBody">${esc(a?.body || '')}</textarea></label>
+    <label>展示频率<select id="aFreq">
+      ${[['once', '仅一次'], ['每次启动', '每次启动'], ['daily', '每天一次']]
+        .map(([v, l]) => `<option value="${v}" ${a?.frequency === v ? 'selected' : ''}>${l}</option>`).join('')}
+    </select></label>
+    <label>按钮链接<select id="aLink">
+      ${ANNOUNCEMENT_LINKS.map((l) => `<option value="${l.value}" ${a?.button_url === l.value ? 'selected' : ''}>${l.label}</option>`).join('')}
+    </select></label>
+    <label id="aUrlWrap" hidden>自定义链接<input id="aUrl" value="${esc(a?.button_url || '')}" placeholder="https://" /></label>
+    <label>按钮文案<input id="aText" value="${esc(a?.button_text || '')}" placeholder="选择链接后自动填充" /></label>
+    <div class="modal-actions"><button class="btn" id="aCancel">取消</button><button class="btn primary" id="aOk">保存</button></div>`;
+
+  modalShell(isEdit ? '编辑公告' : '新建公告', html, (body, close) => {
+    const link = body.querySelector('#aLink');
+    const urlWrap = body.querySelector('#aUrlWrap');
+    const url = body.querySelector('#aUrl');
+    const text = body.querySelector('#aText');
+
+    const sync = () => {
+      const preset = ANNOUNCEMENT_LINKS.find((l) => l.value === link.value);
+      if (link.value === '__custom__') {
+        urlWrap.hidden = false;
+        return;
+      }
+      urlWrap.hidden = true;
+      url.value = link.value;
+      if (preset && preset.text) text.value = preset.text; // 链接名字 → 按钮文案
+    };
+    link.onchange = sync;
+
+    body.querySelector('#aCancel').onclick = close;
+    body.querySelector('#aOk').onclick = async () => {
+      const payload = {
+        title: body.querySelector('#aTitle').value.trim(),
+        body: body.querySelector('#aBody').value.trim(),
+        frequency: body.querySelector('#aFreq').value,
+        button_url: link.value === '__custom__' ? url.value.trim() : link.value,
+        button_text: text.value.trim(),
+        enabled: true,
+        ...(isEdit ? { id: a.id, force: !!a.force } : {}),
+      };
+      if (!payload.title) return toast('标题必填', true);
+      try {
+        await api('/api/announcements', { method: 'POST', body: payload });
+        toast('已保存');
+        close();
+        render('announcements');
+      } catch (e) { toast(e.message, true); }
+    };
+  });
+}
 
 /**
  * 音源发布 / 更新弹窗。
@@ -303,6 +381,7 @@ function openSourceModal({ id = '', name = '', version = '', lockId = false } = 
 
 const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源', audit: '审计', settings: '设置' };
 let currentView = 'dashboard';
+const state = { deviceGroup: 'all' };
 
 async function render(view) {
   currentView = view;
@@ -321,26 +400,13 @@ async function render(view) {
 function bind(view) {
   const root = $('#view');
 
-  root.querySelector('#newAnn')?.addEventListener('click', () =>
-    modal('新建公告', [
-      { name: 'title', label: '标题' },
-      { name: 'body', label: '内容', type: 'textarea' },
-      { name: 'frequency', label: '频率', type: 'select', value: 'once', options: [
-        { value: 'once', label: '仅一次' }, { value: '每次启动', label: '每次启动' }, { value: 'daily', label: '每天一次' }] },
-      { name: 'button_text', label: '按钮文案（可选）' },
-      { name: 'button_url', label: '按钮链接（可选）' },
-    ], (data) => api('/api/announcements', { method: 'POST', body: { ...data, enabled: true } })));
+  root.querySelector('#newAnn')?.addEventListener('click', () => openAnnouncementModal());
 
   root.querySelectorAll('[data-edit]').forEach((btn) =>
     btn.addEventListener('click', async () => {
       const { announcements } = await api('/api/announcements');
       const a = announcements.find((x) => String(x.id) === btn.dataset.edit);
-      modal('编辑公告', [
-        { name: 'title', label: '标题', value: a.title },
-        { name: 'body', label: '内容', type: 'textarea', value: a.body },
-        { name: 'button_text', label: '按钮文案', value: a.button_text },
-        { name: 'button_url', label: '按钮链接', value: a.button_url },
-      ], (data) => api('/api/announcements', { method: 'POST', body: { ...data, id: a.id, enabled: !!a.enabled, force: !!a.force } }));
+      openAnnouncementModal(a);
     }));
 
   root.querySelectorAll('[data-toggle]').forEach((btn) =>
@@ -362,11 +428,14 @@ function bind(view) {
 
   root.querySelectorAll('[data-dev]').forEach((btn) =>
     btn.addEventListener('click', () =>
-      modal('设备备注', [
-        { name: 'note', label: '备注' },
-        { name: 'role', label: '角色', type: 'select', value: 'user', options: [
+      modal('设备分类与备注', [
+        { name: 'role', label: '分类', type: 'select', value: btn.dataset.role, options: [
           { value: 'user', label: '普通用户' }, { value: 'sponsor', label: '赞助用户' }, { value: 'dev', label: '开发者' }] },
+        { name: 'note', label: '备注', type: 'textarea', value: btn.dataset.note },
       ], (data) => api(`/api/devices/${encodeURIComponent(btn.dataset.dev)}`, { method: 'POST', body: data }))));
+
+  root.querySelectorAll('[data-group]').forEach((tab) =>
+    tab.addEventListener('click', () => { state.deviceGroup = tab.dataset.group; render('devices'); }));
 
   root.querySelector('#pubSrc')?.addEventListener('click', () => openSourceModal({}));
 
