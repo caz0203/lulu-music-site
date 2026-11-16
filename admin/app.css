@@ -273,3 +273,7 @@ td.actions { text-align: right; white-space: nowrap; }
 }
 .tab.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); font-weight: 600; }
 @media (max-width: 760px) { .tab { height: 34px; } .card-head { flex-wrap: wrap; gap: 10px; } }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label.row { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
