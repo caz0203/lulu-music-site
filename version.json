@@ -1,8 +1,8 @@
 {
-  "versionCode": 107,
-  "versionName": "1.11.42",
+  "versionCode": 108,
+  "versionName": "1.11.43",
   "notes": [
-    "1. 【修复】QQ 网页登录二维码显示不全：网页显示区加高到 600dp，并启用桌面视口缩放。\n2. 【修复】QQ Cookie 登录后歌单为空：自动反解真实账号再同步。\n3. 【新增】更新与音源清单迁移到 GitHub 分发，服务器停用后仍可更新。"
+    "1. 【迁移】更新/音源/赞助/角色改由 api.xiaoshuai520.asia 分发，服务器到期不影响更新。\n2. 【下载】APK 改由自有域名直出，国内可直接下载。\n3. 【修复】QQ 网页登录、Cookie 登录歌单为空。\n4. 【保留】下载到手机下载目录、网易云/酷狗听歌时长同步。"
   ],
   "url": "https://api.xiaoshuai520.asia/dl/LuluMusic-1.11.43.apk",
   "force": false,
