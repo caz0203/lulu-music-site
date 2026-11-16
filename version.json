@@ -1,11 +1,13 @@
 {
-  "versionCode": 108,
-  "versionName": "1.11.43",
+  "versionCode": 109,
+  "versionName": "1.11.44",
   "notes": [
-    "1. 【迁移】更新/音源/赞助/角色改由 api.xiaoshuai520.asia 分发，服务器到期不影响更新。\n2. 【下载】APK 改由自有域名直出，国内可直接下载。\n3. 【修复】QQ 网页登录、Cookie 登录歌单为空。\n4. 【保留】下载到手机下载目录、网易云/酷狗听歌时长同步。"
+    "1. 原服务器到期下线，更新检查、音源清单、下载全部迁移到 api.xiaoshuai520.asia",
+    "2. 旧版本将无法收到后续更新、无法拉取音源，请务必升级本版",
+    "3. APK 改由自有域名直出，国内下载更稳定，支持断点续传"
   ],
-  "url": "https://api.xiaoshuai520.asia/dl/LuluMusic-1.11.43.apk",
-  "force": false,
+  "url": "https://api.xiaoshuai520.asia/dl/LuluMusic-1.11.44.apk",
+  "force": true,
   "endpoints": {
     "static": [
       "https://api.xiaoshuai520.asia",
