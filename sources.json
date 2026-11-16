@@ -1,0 +1,45 @@
+{
+  "version": 1794635272,
+  "updatedAt": "2026-11-14",
+  "bundled": {
+    "enabled": true,
+    "defaultOn": true
+  },
+  "sources": [
+    {
+      "id": "lulu.bundled.aggregate.v1_0_0",
+      "name": "收集の聚合接口",
+      "version": "1.0.0",
+      "url": "http://119.91.151.245/lx-sources/aggregate-collected.js",
+      "sha256": "cd4b68b133ef8de80a75ac6f9c5d9c80b383e1fe3c364f4366553d18ca9418a5"
+    },
+    {
+      "id": "lulu.bundled.ynx.v1_2_5",
+      "name": "小帅音源（多人同时使用会卡顿）",
+      "version": "1.5.2",
+      "url": "http://119.91.151.245/lx-sources/lulu.bundled.ynx.v1_2_5-1.5.2.js",
+      "sha256": "abb0d6578e20c18f0a586e6dfd23a618136c7c0138d27cb6145d502d981b904b"
+    },
+    {
+      "id": "lulu.bundled.custom.mvo0vwqe",
+      "name": "墨澜音乐源",
+      "version": "2.3.4",
+      "url": "http://119.91.151.245/lx-sources/lulu.bundled.custom.mvo0vwqe-2.3.4.js",
+      "sha256": "328e06c473dfc0ba6de338a7b04f00e3b67a69f59205ca6903d553a80b57c706"
+    },
+    {
+      "id": "lulu.bundled.custom.mvo1t49k",
+      "name": "回避聚合V0.0.1",
+      "version": "1.0",
+      "url": "http://119.91.151.245/lx-sources/lulu.bundled.custom.mvo1t49k-1.0.js",
+      "sha256": "9c35f66bf39c6b66e6dc64d3df27535f329a5e146fe80921406f5db910f63e33"
+    },
+    {
+      "id": "lulu.bundled.custom.mwfzi70z",
+      "name": "lx-music-source-paid-1794633406248",
+      "version": "1.0",
+      "url": "http://119.91.151.245/lx-sources/lulu.bundled.custom.mwfzi70z-1.0.js",
+      "sha256": "c86bce082f121171ca7feee29160d22d341591ecfaac4dc2fc70078fb39b93d7"
+    }
+  ]
+}

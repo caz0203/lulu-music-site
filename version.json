@@ -1,0 +1,16 @@
+{
+  "versionCode": 107,
+  "versionName": "1.11.42",
+  "notes": [
+    "1. 【修复】QQ 网页登录二维码显示不全：网页显示区加高到 600dp，并启用桌面视口缩放。\n2. 【修复】QQ Cookie 登录后歌单为空：自动反解真实账号再同步。\n3. 【新增】更新与音源清单迁移到 GitHub 分发，服务器停用后仍可更新。"
+  ],
+  "url": "https://github.com/caz0203/lulu-music-site/releases/download/v1.11.42/LuluMusic-1.11.42.apk",
+  "force": false,
+  "endpoints": {
+    "static": [
+      "https://caz0203.github.io/lulu-music-site",
+      "https://cdn.jsdelivr.net/gh/caz0203/lulu-music-site@main"
+    ],
+    "legacy": "http://119.91.151.245"
+  }
+}
