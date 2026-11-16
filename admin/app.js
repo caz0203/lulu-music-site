@@ -155,6 +155,32 @@ const views = {
       <tbody>${rows}</tbody></table></div>`;
   },
 
+  async audit() {
+    const { audit } = await api('/api/audit');
+    const rows = audit.length
+      ? audit.map((a) => `<tr><td class="muted">${fmtTime(a.created_at)}</td><td>${esc(a.actor)}</td>
+          <td><code>${esc(a.action)}</code></td><td class="muted">${esc(a.detail || '—')}</td>
+          <td class="muted">${esc(a.ip || '—')}</td></tr>`).join('')
+      : `<tr><td colspan="5" class="empty">暂无记录</td></tr>`;
+    return `<div class="card"><div class="card-head"><h2>审计日志（最近 200 条）</h2></div>
+      <table><thead><tr><th>时间</th><th>操作者</th><th>动作</th><th>详情</th><th>IP</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  },
+
+  async settings() {
+    const { config } = await api('/api/config');
+    const rows = config.length
+      ? config.map((c) => `<tr><td><code>${esc(c.key)}</code></td><td class="muted">${esc(String(c.value).slice(0, 60))}</td>
+          <td class="muted">${fmtTime(c.updated_at)}</td></tr>`).join('')
+      : `<tr><td colspan="3" class="empty">暂无配置项</td></tr>`;
+    return `<div class="card"><div class="card-head"><h2>管理员口令</h2>
+        <button class="btn primary sm" id="chPwd">修改口令</button></div>
+      <div class="card-body muted">口令保存在数据库（优先于环境变量），改完立即生效，旧会话不受影响。</div></div>
+      <div class="card"><div class="card-head"><h2>运行时配置</h2>
+        <button class="btn sm" id="addCfg">新增配置</button></div>
+      <table><thead><tr><th>键</th><th>值</th><th>更新时间</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  },
+
   async sources() {
     const { sources } = await api('/api/sources');
     const rows = sources.length
@@ -172,7 +198,7 @@ const views = {
 
 /* ---------------- 交互绑定 ---------------- */
 
-const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源' };
+const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源', audit: '审计', settings: '设置' };
 let currentView = 'dashboard';
 
 async function render(view) {
@@ -238,6 +264,14 @@ function bind(view) {
         { name: 'role', label: '角色', type: 'select', value: 'user', options: [
           { value: 'user', label: '普通用户' }, { value: 'sponsor', label: '赞助用户' }, { value: 'dev', label: '开发者' }] },
       ], (data) => api(`/api/devices/${encodeURIComponent(btn.dataset.dev)}`, { method: 'POST', body: data }))));
+
+  root.querySelector('#chPwd')?.addEventListener('click', () =>
+    modal('修改口令', [{ name: 'password', label: '新口令（至少 8 位）' }],
+      (data) => api('/api/password', { method: 'POST', body: data })));
+
+  root.querySelector('#addCfg')?.addEventListener('click', () =>
+    modal('新增配置', [{ name: 'key', label: '键' }, { name: 'value', label: '值', type: 'textarea' }],
+      (data) => api('/api/config', { method: 'POST', body: data })));
 
   root.querySelectorAll('[data-resolve]').forEach((btn) =>
     btn.addEventListener('click', async () => {
