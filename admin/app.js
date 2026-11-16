@@ -178,6 +178,26 @@ const views = {
       <tbody>${rows}</tbody></table></div>`;
   },
 
+  async release() {
+    let cur = {};
+    try { cur = await api('/api/release/current'); } catch {}
+    return `<div class="card"><div class="card-head"><h2>当前版本</h2></div>
+      <div class="card-body">v${esc(cur.versionName || '—')} (${esc(cur.versionCode ?? '—')}) ·
+      ${cur.force ? '<span class="badge warn">强制更新</span>' : '<span class="badge off">普通更新</span>'}
+      <div class="sub muted">${esc(cur.url || '')}</div></div></div>
+      <div class="card"><div class="card-head"><h2>发布新版本</h2></div><div class="card-body">
+        <div class="grid2">
+          <label>versionCode<input id="rCode" placeholder="109" /></label>
+          <label>versionName<input id="rName" placeholder="1.11.44" /></label>
+        </div>
+        <label>更新说明（每行一条）<textarea id="rNotes" placeholder="修复…"></textarea></label>
+        <label class="row"><input type="checkbox" id="rForce" style="width:auto" /> 强制更新（不可跳过）</label>
+        <label>APK 文件（≤25MB，上传后自动生成下载地址）<input type="file" id="rApk" accept=".apk" /></label>
+        <div class="modal-actions"><button class="btn primary" id="rGo">发布</button></div>
+        <p class="muted sub">发布后：清单写入 KV（App 走 api 域，即时）+ 同步仓库 version.json（老用户走 Pages/jsDelivr，约 1–10 分钟）。</p>
+      </div></div>`;
+  },
+
   async audit() {
     const { audit } = await api('/api/audit');
     const rows = audit.length
@@ -379,7 +399,7 @@ function openSourceModal({ id = '', name = '', version = '', lockId = false } = 
   });
 }
 
-const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源', audit: '审计', settings: '设置' };
+const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源', audit: '审计', settings: '设置', release: '发版' };
 let currentView = 'dashboard';
 const state = { deviceGroup: 'all' };
 
@@ -485,6 +505,30 @@ function bind(view) {
           }));
       });
     }));
+
+  root.querySelector('#rGo')?.addEventListener('click', async () => {
+    const code = Number(root.querySelector('#rCode').value || 0);
+    const name = root.querySelector('#rName').value.trim();
+    const file = root.querySelector('#rApk').files?.[0];
+    if (!code || !name) return toast('versionCode 与 versionName 必填', true);
+    if (!file) return toast('请选择 APK 文件', true);
+    const fd = new FormData();
+    fd.append('versionCode', String(code));
+    fd.append('versionName', name);
+    fd.append('force', root.querySelector('#rForce').checked ? 'true' : 'false');
+    fd.append('notes', root.querySelector('#rNotes').value);
+    fd.append('apk', file);
+    const btn = root.querySelector('#rGo');
+    btn.disabled = true; btn.textContent = '上传中…';
+    try {
+      const res = await fetch(API + '/api/release', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+      toast(`已发布 ${data.versionName}（仓库同步${data.repo ? '成功' : '失败'}）`);
+      render('release');
+    } catch (e) { toast(e.message, true); }
+    finally { btn.disabled = false; btn.textContent = '发布'; }
+  });
 
   root.querySelector('#chPwd')?.addEventListener('click', () =>
     modal('修改口令', [{ name: 'password', label: '新口令（至少 8 位）' }],
