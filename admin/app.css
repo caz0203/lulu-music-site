@@ -1,0 +1,173 @@
+:root {
+  --bg: #f7f8fa;
+  --panel: #ffffff;
+  --line: #e6e8ee;
+  --text: #1c1f26;
+  --muted: #6b7280;
+  --accent: #3b5bdb;
+  --accent-soft: #eef2ff;
+  --ok: #0f9d58;
+  --warn: #b45309;
+  --danger: #c0392b;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -.01em; }
+a { cursor: pointer; text-decoration: none; color: inherit; }
+
+/* ---------- 登录 ---------- */
+.login-wrap {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1200px 600px at 50% -10%, #eef2ff 0%, var(--bg) 60%);
+}
+.login-card {
+  width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+}
+.login-card label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.login-card input {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+.login-card input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+/* ---------- 骨架 ---------- */
+.shell { display: grid; grid-template-columns: 236px 1fr; min-height: 100%; }
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: #fff;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -.01em; }
+.brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+#nav { display: grid; gap: 2px; }
+#nav a {
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+#nav a:hover { background: #f2f4f8; color: var(--text); }
+#nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+.sidebar-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.content { padding: 22px 26px 40px; max-width: 1180px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.topbar h1 { font-size: 20px; }
+.view { display: grid; gap: 16px; }
+
+/* ---------- 组件 ---------- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+}
+.card-head h2 { font-size: 14.5px; }
+.card-body { padding: 16px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.stat { padding: 16px; }
+.stat .k { color: var(--muted); font-size: 12.5px; }
+.stat .v { font-size: 26px; font-weight: 650; margin-top: 6px; letter-spacing: -.02em; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { color: var(--muted); font-weight: 500; font-size: 12.5px; background: #fcfcfd; }
+tr:hover td { background: #fafbfc; }
+td.actions { text-align: right; white-space: nowrap; }
+
+.btn {
+  height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--line);
+  background: #fff; color: var(--text); font-size: 13px; cursor: pointer;
+}
+.btn:hover { background: #f6f7f9; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.ghost { background: transparent; }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.btn.danger { color: var(--danger); border-color: #f1dedb; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+.badge.ok { background: #e9f7ef; color: var(--ok); }
+.badge.off { background: #f2f4f8; color: var(--muted); }
+.badge.warn { background: #fdf1e3; color: var(--warn); }
+
+.muted { color: var(--muted); }
+.hint { font-size: 12.5px; color: var(--warn); min-height: 18px; margin: 0; }
+.link { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 12.5px; padding: 0; }
+
+.empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* ---------- 弹窗 / 提示 ---------- */
+.modal { position: fixed; inset: 0; background: rgba(16, 24, 40, .38); display: grid; place-items: center; padding: 20px; }
+.modal-card { width: min(560px, 96vw); background: #fff; border-radius: 14px; box-shadow: var(--shadow); }
+.modal-card header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.modal-card header h2 { font-size: 15px; }
+#modalBody { padding: 18px; display: grid; gap: 12px; }
+#modalBody label { display: grid; gap: 6px; font-size: 12.5px; color: var(--muted); }
+#modalBody input, #modalBody textarea, #modalBody select {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; font: inherit; background: #fff;
+}
+#modalBody textarea { min-height: 84px; resize: vertical; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+.toast {
+  position: fixed; top: 18px; right: 18px; background: #1c1f26; color: #fff;
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; box-shadow: var(--shadow); z-index: 20;
+}
+.toast.err { background: #8e2b22; }
+
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; flex-direction: row; align-items: center; gap: 10px; overflow-x: auto; }
+  #nav { grid-auto-flow: column; }
+  .sidebar-foot { border: 0; padding: 0; }
+  .content { padding: 16px; }
+}
