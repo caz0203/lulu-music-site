@@ -37,9 +37,12 @@
     {
       "id": "lulu.bundled.custom.mwfzi70z",
       "name": "lx-music-source-paid-1794633406248",
-      "version": "1.0",
+      "version": "1.5.5",
       "url": "http://119.91.151.245/lx-sources/lulu.bundled.custom.mwfzi70z-1.0.js",
-      "sha256": "c86bce082f121171ca7feee29160d22d341591ecfaac4dc2fc70078fb39b93d7"
+      "sha256": "c86bce082f121171ca7feee29160d22d341591ecfaac4dc2fc70078fb39b93d7",
+      "file": "lulu.bundled.custom.mwfzi70z-1.5.5.js",
+      "path": "/lx-sources/lulu.bundled.custom.mwfzi70z-1.5.5.js",
+      "size": 8790
     }
   ]
 }
