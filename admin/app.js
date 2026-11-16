@@ -31,6 +31,17 @@ function toast(msg, isError = false) {
   toast._t = setTimeout(() => (el.hidden = true), 2600);
 }
 
+function modalShell(title, html, onMount) {
+  $('#modalTitle').textContent = title;
+  const body = $('#modalBody');
+  body.innerHTML = html;
+  $('#modal').hidden = false;
+  const close = () => ($('#modal').hidden = true);
+  $('#modalClose').onclick = close;
+  if (onMount) onMount(body, close);
+  return close;
+}
+
 function modal(title, fields, onSubmit) {
   $('#modalTitle').textContent = title;
   const body = $('#modalBody');
@@ -184,16 +195,21 @@ const views = {
   async sources() {
     const { sources } = await api('/api/sources');
     const rows = sources.length
-      ? sources.map((s) => `<tr><td>${esc(s.name || s.id)}</td><td>${esc(s.version)}</td>
-          <td class="muted"><code>${esc(s.file || '—')}</code></td>
-          <td class="muted">${s.size ? (s.size / 1024).toFixed(0) + ' KB' : '—'}</td>
-          <td class="muted">${fmtTime(s.updatedAt)}</td>
-          <td class="actions"><button class="btn sm" data-vers="${esc(s.id)}">版本</button></td></tr>`).join('')
-      : `<tr><td colspan="6" class="empty">暂无音源</td></tr>`;
+      ? sources.map((s) => `<tr>
+          <td data-label="名称">${esc(s.name || s.id)}<div class="sub muted">${esc(s.id)}</div></td>
+          <td data-label="版本">${esc(s.version)}</td>
+          <td data-label="大小" class="muted">${s.size ? (s.size / 1024).toFixed(0) + ' KB' : '—'}</td>
+          <td data-label="更新时间" class="muted">${fmtTime(s.updatedAt)}</td>
+          <td class="actions">
+            <button class="btn sm" data-update="${esc(s.id)}" data-name="${esc(s.name || '')}" data-version="${esc(s.version || '')}">更新</button>
+            <button class="btn sm" data-vers="${esc(s.id)}" data-name="${esc(s.name || '')}">回滚</button>
+          </td></tr>`).join('')
+      : `<tr><td colspan="5" class="empty">暂无音源</td></tr>`;
     return `<div class="card">
-      <div class="card-head"><h2>内置音源</h2><button class="btn primary sm" id="pubSrc">发布 / 更新</button></div>
-      <table><thead><tr><th>名称</th><th>版本</th><th>文件</th><th>大小</th><th>更新时间</th><th></th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="card-body muted">发布 = 写入 GitHub Pages（脚本 + sources.json），App 下次启动拉清单后热更新；回滚可切回任一历史版本。</div></div>`;
+      <div class="card-head"><h2>内置音源</h2><button class="btn primary sm" id="pubSrc">新增音源</button></div>
+      <div class="table-wrap"><table><thead><tr><th>名称</th><th>版本</th><th>大小</th><th>更新时间</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <div class="card-body muted">「更新」= 只改这一个音源并提升版本；「回滚」= 从历史版本里挑一个切回去。App 下次启动拉清单后热更新（最长 5 分钟）。</div></div>`;
   },
 };
 
@@ -278,15 +294,60 @@ function bind(view) {
       await api('/api/sources/publish', { method: 'POST', body: data });
     }));
 
+  root.querySelectorAll('[data-update]').forEach((btn) =>
+    btn.addEventListener('click', () =>
+      modal(`更新音源 · ${btn.dataset.name || btn.dataset.update}`, [
+        { name: 'id', label: '音源 ID（不可改）', value: btn.dataset.update },
+        { name: 'name', label: '显示名称', value: btn.dataset.name },
+        { name: 'version', label: '新版本号（需大于当前）', placeholder: btn.dataset.version },
+        { name: 'code', label: '新脚本内容（整段粘贴）', type: 'textarea' },
+      ], async (data) => {
+        data.id = btn.dataset.update;
+        const check = await api('/api/sources/check', { method: 'POST', body: { code: data.code } });
+        if (!check.ok) throw new Error('校验未通过：' + check.problems.join('；'));
+        await api('/api/sources/publish', { method: 'POST', body: data });
+      })));
+
   root.querySelectorAll('[data-vers]').forEach((btn) =>
     btn.addEventListener('click', async () => {
-      const { versions } = await api(`/api/sources/${encodeURIComponent(btn.dataset.vers)}/versions`);
-      modal(`版本历史 · ${btn.dataset.vers}`, [{ name: '_', label: '选择要回滚的版本（填版本号）' }],
-        (data) => api(`/api/sources/${encodeURIComponent(btn.dataset.vers)}/rollback`, { method: 'POST', body: { version: data._ } }));
+      const id = btn.dataset.vers;
+      let versions = [];
+      try {
+        versions = (await api(`/api/sources/${encodeURIComponent(id)}/versions`)).versions || [];
+      } catch (e) {
+        toast(e.message, true);
+        return;
+      }
+      const current = btn.closest('tr')?.querySelector('[data-label="版本"]')?.textContent?.trim();
       const list = versions.length
-        ? versions.map((v) => `<div class="muted" style="padding:4px 0">v${esc(v.version)} · ${esc(v.file)} · ${fmtTime(v.created_at)}</div>`).join('')
-        : '<div class="muted">暂无历史</div>';
-      document.querySelector('#modalBody').insertAdjacentHTML('afterbegin', `<div>${list}</div>`);
+        ? versions.map((v) => {
+            const isCurrent = current && v.version === current;
+            return `<div class="ver-row">
+              <div><strong>v${esc(v.version)}</strong><div class="sub muted">${esc(v.file)} · ${fmtTime(v.created_at)} · ${(v.size / 1024).toFixed(0)} KB</div></div>
+              ${isCurrent
+                ? '<span class="badge ok">当前</span>'
+                : `<button class="btn sm" data-rb="${esc(v.version)}">回滚到此版本</button>`}
+            </div>`;
+          }).join('')
+        : '<div class="empty">该音源还没有历史版本</div>';
+
+      modalShell(`回滚 · ${btn.dataset.name || id}`, `<div class="ver-list">${list}</div>`, (body, close) => {
+        body.querySelectorAll('[data-rb]').forEach((rb) =>
+          rb.addEventListener('click', async () => {
+            rb.disabled = true;
+            rb.textContent = '回滚中…';
+            try {
+              await api(`/api/sources/${encodeURIComponent(id)}/rollback`, { method: 'POST', body: { version: rb.dataset.rb } });
+              toast(`已回滚到 v${rb.dataset.rb}`);
+              close();
+              render('sources');
+            } catch (e) {
+              toast(e.message, true);
+              rb.disabled = false;
+              rb.textContent = '回滚到此版本';
+            }
+          }));
+      });
     }));
 
   root.querySelector('#chPwd')?.addEventListener('click', () =>
