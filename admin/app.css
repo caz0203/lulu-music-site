@@ -173,3 +173,86 @@ td.actions { text-align: right; white-space: nowrap; }
   .sidebar-foot { border: 0; padding: 0; }
   .content { padding: 16px; }
 }
+
+/* ---------- 表格包装 / 版本列表 ---------- */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sub { font-size: 12px; margin-top: 2px; }
+
+.ver-list { display: grid; gap: 10px; }
+.ver-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+}
+.ver-row strong { font-size: 14px; }
+
+/* ---------- 移动端适配（安卓 WebView / iOS Safari） ---------- */
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; }
+
+  .shell { grid-template-columns: 1fr; min-height: 100dvh; }
+  .sidebar {
+    position: sticky; top: 0; z-index: 5; height: auto;
+    flex-direction: column; gap: 10px; padding: 12px 14px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    border-right: 0; border-bottom: 1px solid var(--line);
+    backdrop-filter: saturate(180%) blur(8px);
+    background: rgba(255, 255, 255, .92);
+  }
+  .sidebar .brand { font-size: 15px; }
+  .sidebar-foot { border-top: 0; padding: 0; position: absolute; top: 14px; right: 14px; gap: 10px; }
+  #nav {
+    grid-auto-flow: column; grid-auto-columns: max-content;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 6px; padding-bottom: 2px;
+  }
+  #nav a { white-space: nowrap; padding: 10px 12px; font-size: 14px; border-radius: 10px; }
+  #nav a.active { background: var(--accent-soft); }
+
+  .content { padding: 14px 14px calc(28px + env(safe-area-inset-bottom)); }
+  .topbar { margin-bottom: 12px; }
+  .topbar h1 { font-size: 18px; }
+
+  /* 触摸目标 ≥ 44px */
+  .btn { height: 42px; padding: 0 16px; font-size: 14px; }
+  .btn.sm { height: 36px; padding: 0 12px; font-size: 13.5px; }
+  .link { padding: 8px 2px; font-size: 13px; }
+
+  /* 表格转为卡片式列表，避免横向滚动误触 */
+  table, thead, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tr {
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+    display: grid; gap: 6px;
+  }
+  td { border: 0; padding: 0; font-size: 14px; }
+  td[data-label]::before {
+    content: attr(data-label) "："; color: var(--muted); font-size: 12.5px;
+  }
+  td.actions { display: flex; gap: 8px; justify-content: flex-start; margin-top: 6px; }
+  td.actions .btn { flex: 0 0 auto; }
+
+  /* 弹窗改为全屏面板，内部可滚动 */
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-card {
+    width: 100%; max-height: 92dvh; border-radius: 16px 16px 0 0;
+    display: flex; flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .modal-card header { position: sticky; top: 0; background: #fff; z-index: 2; }
+  #modalBody { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+  #modalBody input, #modalBody textarea, #modalBody select { font-size: 16px; } /* 防止 iOS 聚焦缩放 */
+  .modal-actions { position: sticky; bottom: 0; background: #fff; padding: 12px 0 4px; }
+
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { padding: 14px; }
+  .stat .v { font-size: 22px; }
+  .card-body { padding: 14px; }
+  .card-head { padding: 12px 14px; }
+  .card-head h2 { font-size: 14px; }
+  .ver-row { align-items: flex-start; flex-direction: column; }
+  .ver-row .btn { width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .login-card { width: 100%; border-radius: 0; min-height: 100dvh; justify-content: center; }
+  .login-card input { font-size: 16px; }
+}
