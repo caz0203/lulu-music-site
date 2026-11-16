@@ -187,12 +187,13 @@ const views = {
       ? sources.map((s) => `<tr><td>${esc(s.name || s.id)}</td><td>${esc(s.version)}</td>
           <td class="muted"><code>${esc(s.file || '—')}</code></td>
           <td class="muted">${s.size ? (s.size / 1024).toFixed(0) + ' KB' : '—'}</td>
-          <td class="muted">${fmtTime(s.updatedAt)}</td></tr>`).join('')
-      : `<tr><td colspan="5" class="empty">暂无音源</td></tr>`;
+          <td class="muted">${fmtTime(s.updatedAt)}</td>
+          <td class="actions"><button class="btn sm" data-vers="${esc(s.id)}">版本</button></td></tr>`).join('')
+      : `<tr><td colspan="6" class="empty">暂无音源</td></tr>`;
     return `<div class="card">
-      <div class="card-head"><h2>内置音源（只读）</h2></div>
-      <table><thead><tr><th>名称</th><th>版本</th><th>文件</th><th>大小</th><th>更新时间</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="card-body muted">音源脚本与 <code>sources.json</code> 由 GitHub Pages 分发，发布请提交仓库文件。</div></div>`;
+      <div class="card-head"><h2>内置音源</h2><button class="btn primary sm" id="pubSrc">发布 / 更新</button></div>
+      <table><thead><tr><th>名称</th><th>版本</th><th>文件</th><th>大小</th><th>更新时间</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="card-body muted">发布 = 写入 GitHub Pages（脚本 + sources.json），App 下次启动拉清单后热更新；回滚可切回任一历史版本。</div></div>`;
   },
 };
 
@@ -264,6 +265,29 @@ function bind(view) {
         { name: 'role', label: '角色', type: 'select', value: 'user', options: [
           { value: 'user', label: '普通用户' }, { value: 'sponsor', label: '赞助用户' }, { value: 'dev', label: '开发者' }] },
       ], (data) => api(`/api/devices/${encodeURIComponent(btn.dataset.dev)}`, { method: 'POST', body: data }))));
+
+  root.querySelector('#pubSrc')?.addEventListener('click', () =>
+    modal('发布音源', [
+      { name: 'id', label: '音源 ID（如 lulu.bundled.ynx.v1_2_5）' },
+      { name: 'name', label: '显示名称' },
+      { name: 'version', label: '版本号（如 1.5.3）' },
+      { name: 'code', label: '脚本内容（整段粘贴）', type: 'textarea' },
+    ], async (data) => {
+      const check = await api('/api/sources/check', { method: 'POST', body: { code: data.code } });
+      if (!check.ok) throw new Error('校验未通过：' + check.problems.join('；'));
+      await api('/api/sources/publish', { method: 'POST', body: data });
+    }));
+
+  root.querySelectorAll('[data-vers]').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      const { versions } = await api(`/api/sources/${encodeURIComponent(btn.dataset.vers)}/versions`);
+      modal(`版本历史 · ${btn.dataset.vers}`, [{ name: '_', label: '选择要回滚的版本（填版本号）' }],
+        (data) => api(`/api/sources/${encodeURIComponent(btn.dataset.vers)}/rollback`, { method: 'POST', body: { version: data._ } }));
+      const list = versions.length
+        ? versions.map((v) => `<div class="muted" style="padding:4px 0">v${esc(v.version)} · ${esc(v.file)} · ${fmtTime(v.created_at)}</div>`).join('')
+        : '<div class="muted">暂无历史</div>';
+      document.querySelector('#modalBody').insertAdjacentHTML('afterbegin', `<div>${list}</div>`);
+    }));
 
   root.querySelector('#chPwd')?.addEventListener('click', () =>
     modal('修改口令', [{ name: 'password', label: '新口令（至少 8 位）' }],
