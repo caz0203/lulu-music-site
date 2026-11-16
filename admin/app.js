@@ -215,6 +215,92 @@ const views = {
 
 /* ---------------- 交互绑定 ---------------- */
 
+/**
+ * 音源发布 / 更新弹窗。
+ *
+ * 支持三种录入方式，对应原服务器的「上传脚本」体验：
+ *  1. 选择文件（`<input type=file>`，读入文本）；
+ *  2. 拖拽文件到虚线框；
+ *  3. 直接粘贴脚本正文。
+ *
+ * 选中文件后会**自动识别** id / 名称 / 版本：
+ *  - 文件名形如 `lulu.bundled.ynx.v1_2_5-1.5.2.js` → id=`lulu.bundled.ynx.v1_2_5`，版本=`1.5.2`；
+ *  - 文件名只有一个版本号 `xxx-1.2.3.js` → 版本取最后一段；
+ *  - 识别不出就留空，由用户手填。
+ */
+function openSourceModal({ id = '', name = '', version = '', lockId = false } = {}) {
+  const html = `
+    <div class="dropzone" id="drop">
+      <div><strong>选择或拖入脚本文件</strong></div>
+      <div class="sub muted">.js / .txt，最大 512KB；选中后自动识别 ID 与版本</div>
+      <input type="file" id="file" accept=".js,.txt,text/javascript" hidden />
+      <button class="btn sm" type="button" id="pick" style="margin-top:8px">选择文件</button>
+      <div class="sub" id="fileInfo"></div>
+    </div>
+    <label>音源 ID<input id="sId" value="${esc(id)}" ${lockId ? 'readonly' : ''} placeholder="lulu.bundled.xxx.v1_0_0" /></label>
+    <label>显示名称<input id="sName" value="${esc(name)}" /></label>
+    <label>版本号<input id="sVer" value="${esc(version)}" placeholder="1.5.3" /></label>
+    <label>脚本内容<textarea id="sCode" style="min-height:150px" placeholder="粘贴或导入脚本正文"></textarea></label>
+    <div class="modal-actions"><button class="btn" id="sCancel">取消</button><button class="btn primary" id="sOk">校验并发布</button></div>`;
+
+  modalShell(id ? '更新音源' : '新增音源', html, (body, close) => {
+    const file = body.querySelector('#file');
+    const info = body.querySelector('#fileInfo');
+    const code = body.querySelector('#sCode');
+
+    const accept = async (f) => {
+      if (!f) return;
+      if (f.size > 512 * 1024) return toast('文件超过 512KB', true);
+      const text = await f.text();
+      code.value = text;
+      const base = f.name.replace(/\.(js|txt)$/i, '');
+      // 版本号：文件名末尾的 x.y[.z]
+      const vm = base.match(/(\d+(?:\.\d+){1,3})$/);
+      // 音源 ID：去掉末尾版本段后的主体
+      const idPart = vm ? base.slice(0, base.length - vm[0].length).replace(/[-_.]+$/, '') : base;
+      if (idPart && !body.querySelector('#sId').value) body.querySelector('#sId').value = idPart;
+      if (vm && !body.querySelector('#sVer').value) body.querySelector('#sVer').value = vm[1];
+      if (!body.querySelector('#sName').value) body.querySelector('#sName').value = idPart || base;
+      info.textContent = `${f.name} · ${(f.size / 1024).toFixed(1)} KB · 已读入`;
+      toast('脚本已导入');
+    };
+
+    body.querySelector('#pick').onclick = () => file.click();
+    file.onchange = () => accept(file.files?.[0]);
+
+    const drop = body.querySelector('#drop');
+    drop.addEventListener('click', (e) => { if (e.target === drop) file.click(); });
+    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('on'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('on'); }));
+    drop.addEventListener('drop', (e) => accept(e.dataTransfer?.files?.[0]));
+
+    body.querySelector('#sCancel').onclick = close;
+    body.querySelector('#sOk').onclick = async () => {
+      const payload = {
+        id: body.querySelector('#sId').value.trim(),
+        name: body.querySelector('#sName').value.trim() || body.querySelector('#sId').value.trim(),
+        version: body.querySelector('#sVer').value.trim(),
+        code: code.value,
+      };
+      if (!payload.id || !payload.version || !payload.code) return toast('ID、版本、脚本内容都要填', true);
+      const btn = body.querySelector('#sOk');
+      btn.disabled = true; btn.textContent = '校验中…';
+      try {
+        const check = await api('/api/sources/check', { method: 'POST', body: { code: payload.code } });
+        if (!check.ok) throw new Error('校验未通过：' + check.problems.join('；'));
+        btn.textContent = '发布中…';
+        await api('/api/sources/publish', { method: 'POST', body: payload });
+        toast(`已发布 ${payload.id} v${payload.version}（App 最长 5 分钟生效）`);
+        close();
+        render('sources');
+      } catch (e) {
+        toast(e.message, true);
+        btn.disabled = false; btn.textContent = '校验并发布';
+      }
+    };
+  });
+}
+
 const titles = { dashboard: '概览', announcements: '公告', donors: '赞助榜', devices: '设备', feedback: '反馈', sources: '音源', audit: '审计', settings: '设置' };
 let currentView = 'dashboard';
 
@@ -282,31 +368,12 @@ function bind(view) {
           { value: 'user', label: '普通用户' }, { value: 'sponsor', label: '赞助用户' }, { value: 'dev', label: '开发者' }] },
       ], (data) => api(`/api/devices/${encodeURIComponent(btn.dataset.dev)}`, { method: 'POST', body: data }))));
 
-  root.querySelector('#pubSrc')?.addEventListener('click', () =>
-    modal('发布音源', [
-      { name: 'id', label: '音源 ID（如 lulu.bundled.ynx.v1_2_5）' },
-      { name: 'name', label: '显示名称' },
-      { name: 'version', label: '版本号（如 1.5.3）' },
-      { name: 'code', label: '脚本内容（整段粘贴）', type: 'textarea' },
-    ], async (data) => {
-      const check = await api('/api/sources/check', { method: 'POST', body: { code: data.code } });
-      if (!check.ok) throw new Error('校验未通过：' + check.problems.join('；'));
-      await api('/api/sources/publish', { method: 'POST', body: data });
-    }));
+  root.querySelector('#pubSrc')?.addEventListener('click', () => openSourceModal({}));
 
   root.querySelectorAll('[data-update]').forEach((btn) =>
-    btn.addEventListener('click', () =>
-      modal(`更新音源 · ${btn.dataset.name || btn.dataset.update}`, [
-        { name: 'id', label: '音源 ID（不可改）', value: btn.dataset.update },
-        { name: 'name', label: '显示名称', value: btn.dataset.name },
-        { name: 'version', label: '新版本号（需大于当前）', placeholder: btn.dataset.version },
-        { name: 'code', label: '新脚本内容（整段粘贴）', type: 'textarea' },
-      ], async (data) => {
-        data.id = btn.dataset.update;
-        const check = await api('/api/sources/check', { method: 'POST', body: { code: data.code } });
-        if (!check.ok) throw new Error('校验未通过：' + check.problems.join('；'));
-        await api('/api/sources/publish', { method: 'POST', body: data });
-      })));
+    btn.addEventListener('click', () => openSourceModal({
+      id: btn.dataset.update, name: btn.dataset.name, version: '', lockId: true,
+    })));
 
   root.querySelectorAll('[data-vers]').forEach((btn) =>
     btn.addEventListener('click', async () => {
